@@ -21,7 +21,7 @@ export default function RegisterScreen({ navigation }) {
     }
 
     try {
-      const response = await fetch('http://10.0.2.2:7001/api/Auth/register', {
+     const response = await fetch('https://notesapi-7r9d.onrender.com/api/Auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
