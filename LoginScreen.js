@@ -1,49 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
   TextInput,
-  Button,
-  StyleSheet,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
-  TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { AuthContext } from './AuthContext'; // adjust the path if needed
 
-export default function LoginScreen({ navigation, setIsLoggedIn }) {
+export default function LoginScreen({ navigation }) {
+  const { setIsLoggedIn } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('All fields are required');
+      return;
+    }
+  if (!emailRegex.test(email)) {
+  Alert.alert('Please enter a valid email address');
+  return;
+}
+
     setLoading(true);
 
     try {
       const response = await fetch('https://notesapi-7r9d.onrender.com/api/Auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Login failed');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Login failed');
       }
 
       const data = await response.json();
       const token = data.token;
 
       await SecureStore.setItemAsync('userToken', token);
-      await SecureStore.deleteItemAsync('isGuest'); // clear guest flag
+      await SecureStore.deleteItemAsync('isGuest');
 
       setIsLoggedIn(true);
-      navigation.replace('Notes');
     } catch (error) {
-      console.error('Login error:', error.message);
       Alert.alert('Login Failed', error.message);
+      console.error('Login error:', error.message);
     } finally {
       setLoading(false);
     }
@@ -52,38 +59,46 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
   const handleGuestLogin = async () => {
     await SecureStore.setItemAsync('isGuest', 'true');
     setIsLoggedIn(true);
-    navigation.replace('Notes');
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>NOTE</Text>
+      <Text style={styles.header}>Welcome Back</Text>
+      <Text style={styles.subheader}>
+        Log in to your account to access to your notes.
+      </Text>
+
+      <Text style={styles.label}>Email Address</Text>
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
+        placeholder="example@gmail.com"
         keyboardType="email-address"
+        autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
       />
+
+      <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="********"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-      {loading ? (
-        <ActivityIndicator size="large" />
-      ) : (
-        <Button title="Login" onPress={handleLogin} />
-      )}
-      <Text
-        style={styles.registerLink}
-        onPress={() => navigation.navigate('Register')}
-      >
-        Don't have an account? Register here
-      </Text>
+
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.loginText}>Don't have an account? Register here</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity onPress={handleGuestLogin}>
         <Text style={styles.guestText}>Continue as Guest</Text>
@@ -95,33 +110,69 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: '#fbeee0',
+    padding: 24,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 30,
+    alignSelf: 'center',
+    color: '#2e2e2e',
+    marginBottom: 12,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 8,
+    color: '#2e2e2e',
+  },
+  subheader: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#5c5c5c',
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5c5c5c',
+    marginBottom: 6,
+    marginTop: 12,
   },
   input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 4,
+    color: '#333',
   },
-  registerLink: {
-    marginTop: 20,
+  button: {
+    backgroundColor: '#d9534f',
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  loginText: {
+    marginTop: 16,
     textAlign: 'center',
-    color: 'blue',
+    color: '#d9534f',
+    fontWeight: 'bold',
   },
   guestText: {
     marginTop: 30,
     textAlign: 'center',
-    color: '#007bff',
+    color: '#d9534f',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '500',
   },
 });
